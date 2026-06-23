@@ -6,7 +6,11 @@
   "author": "DMT Club",
   "hue": {
     "primary": 3,
+<<<<<<< HEAD
     "link": 160,
+=======
+    "link": 175,
+>>>>>>> b0.8-theme
     "warn": 38,
     "error": 355
   },
@@ -61,4 +65,8 @@
     }
   },
   "color": "#91201A"
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b0.8-theme

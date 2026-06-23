@@ -125,8 +125,12 @@ function loadThemeCSS(name) {
     presetLinkEl.rel = "stylesheet";
     document.head.appendChild(presetLinkEl);
   }
+<<<<<<< HEAD
   var cacheBuster = typeof window.__BUILD_HASH__ !== "undefined" ? window.__BUILD_HASH__ : Date.now();
   presetLinkEl.href = "themes/" + name + ".css?" + cacheBuster;
+=======
+  presetLinkEl.href = "themes/" + name + ".css?" + Date.now();
+>>>>>>> b0.8-theme
 }
 
 function buildPresetDropdown() {
@@ -147,7 +151,18 @@ function togglePresetDropdown() {
   var dd = elements.presetDropdown;
   if (!dd) return;
   var open = dd.classList.toggle("open");
+<<<<<<< HEAD
   if (!open) {
+=======
+  if (open) {
+    dd.querySelectorAll(".preset-option").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        selectThemePreset(btn.dataset.preset);
+      });
+      btn.addEventListener("mouseenter", showPresetOptionTooltip);
+      btn.addEventListener("mouseleave", hidePresetOptionTooltip);    });
+  } else {
+>>>>>>> b0.8-theme
     hidePresetOptionTooltip();
   }
 }
@@ -850,6 +865,7 @@ document.addEventListener("click", function (event) {
   hidePresetOptionTooltip();
 });
 
+<<<<<<< HEAD
 elements.presetItems?.addEventListener("click", function (event) {
   var btn = event.target.closest(".preset-option");
   if (!btn) return;
@@ -866,6 +882,8 @@ elements.presetItems?.addEventListener("mouseleave", function () {
   hidePresetOptionTooltip();
 });
 
+=======
+>>>>>>> b0.8-theme
 elements.searchEnToggle.addEventListener("change", function () {
     state.searchEn = this.checked;
     if (state.query.trim()) {
