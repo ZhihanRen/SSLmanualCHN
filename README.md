@@ -56,7 +56,6 @@ npm run serve
 
 ## 💻 常用命令
 
-<<<<<<< HEAD
 
 ### 🔄 核心构建与服务
 
@@ -114,8 +113,5 @@ npm run serve
 
 
 ---
-=======
-详细说明见 [架构](docs/ARCHITECTURE.md)、[贡献指南](docs/CONTRIBUTING.md)、[翻译流程](docs/TRANSLATION.md)、[样式与主题系统](docs/STYLING.md)、[源站转储](docs/UPSTREAM_SNAPSHOTS.md)、和[部署指南](docs/DEPLOYMENT.md)。
->>>>>>> b0.8-theme
 
 原始来源：[SSL Live Help](https://livehelp.solidstatelogic.com/)
