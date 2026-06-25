@@ -36,12 +36,14 @@ const elements = {
   previousPage: document.querySelector("#previousPage"),
   nextPage: document.querySelector("#nextPage"),
   pageCounter: document.querySelector("#pageCounter"),
+  installButton: document.querySelector("#installButton"),
   sidebar: document.querySelector("#sidebar"),
   menuButton: document.querySelector("#menuButton"),
   outlineButton: document.querySelector("#outlineButton"),
   scrim: document.querySelector("#scrim"),
 
 };
+let deferredInstallPrompt = null;
 
 /* — Theme management — */
 function getEffectiveTheme() {
@@ -129,18 +131,37 @@ function loadThemeCSS(name) {
   presetLinkEl.href = "themes/" + name + ".css?" + cacheBuster;
 }
 
+function isValidCssColor(value) {
+  return typeof value === "string"
+    && value.trim()
+    && typeof CSS !== "undefined"
+    && CSS.supports("color", value.trim());
+}
+
 function buildPresetDropdown() {
-  var html = "";
   var themes = state.themes || [];
+  if (!elements.presetItems) return;
+  elements.presetItems.textContent = "";
   for (var i = 0; i < themes.length; i++) {
     var t = themes[i];
-    var active = t.id === state.themePreset ? " active" : "";
-    html += '<button class="preset-option' + active + '" type="button" role="menuitem" data-preset="' + t.id + '" data-description="' + escapeHtml(t.description || '') + '">' +
-      '<span class="preset-indicator" style="background:' + t.color + '"></span>' +
-      '<span>' + t.label + '</span>' +
-      '</button>';
+    var button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("role", "menuitem");
+    button.className = "preset-option" + (t.id === state.themePreset ? " active" : "");
+    button.dataset.preset = t.id;
+    button.dataset.description = t.description || "";
+
+    var indicator = document.createElement("span");
+    indicator.className = "preset-indicator";
+    var colorValue = isValidCssColor(t.color) ? t.color.trim() : "var(--acid)";
+    indicator.style.backgroundColor = colorValue;
+
+    var label = document.createElement("span");
+    label.textContent = t.label || "";
+
+    button.append(indicator, label);
+    elements.presetItems.appendChild(button);
   }
-  if (elements.presetItems) elements.presetItems.innerHTML = html;
 }
 
 function togglePresetDropdown() {
@@ -254,6 +275,38 @@ async function loadData(path, readLocalValue) {
   return response.json();
 }
 
+function updateInstallButtonVisibility() {
+  if (!elements.installButton) return;
+  const installed =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    window.navigator.standalone === true;
+  elements.installButton.hidden = !deferredInstallPrompt || installed;
+}
+
+window.addEventListener("beforeinstallprompt", function (event) {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  updateInstallButtonVisibility();
+});
+
+window.addEventListener("appinstalled", function () {
+  deferredInstallPrompt = null;
+  updateInstallButtonVisibility();
+});
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  try {
+    await navigator.serviceWorker.register("./sw.js", {
+      scope: "./",
+      updateViaCache: "none",
+    });
+  } catch (error) {
+    console.warn("Service worker registration failed:", error);
+  }
+}
+
 function pageRoute(pageId, headingId = "") {
   return `#/page/${encodeURIComponent(pageId)}${headingId ? `/${encodeURIComponent(headingId)}` : ""}`;
 }
@@ -283,7 +336,10 @@ async function loadPage(pageId) {
     const request = loadData(
       `pages/${encodeURIComponent(pageId)}.json`,
       () => localData.pages[pageId],
-    );
+    ).catch((error) => {
+      state.pageCache.delete(pageId);
+      throw error;
+    });
     state.pageCache.set(pageId, request);
   }
   return state.pageCache.get(pageId);
@@ -687,11 +743,11 @@ function renderPage(page, headingId = "", skipScroll = false) {
       <p class="eyebrow">${escapeHtml(page.sectionZh)} · CHAPTER ${String(page.order).padStart(2, "0")}</p>
       <h1>${escapeHtml(page.titleZh)}</h1>
       <p class="english-title">${escapeHtml(page.title)}</p>
-      <span class="translation-badge">${
-        page.translationStatus === "complete"
-          ? "● 中文翻译已完成 · 可切换英文原文"
-          : "△ 中文正文翻译进行中 · 当前显示完整英文原文"
-      }</span>
+     <span class="translation-badge">${
+       page.translationStatus === "complete"
+          ? '<span class="translation-badge-dot">●</span> 中文翻译已完成 · 可切换英文原文'
+          : '<span class="translation-badge-dot">△</span> 中文正文翻译进行中 · 当前显示完整英文原文'
+     }</span>
     </header>
     <div class="manual-content">${state.language === "en" ? page.englishHtml : page.contentHtml}</div>
   `;
@@ -798,6 +854,8 @@ async function start() {
       `搜索全部 ${state.catalog.meta.pageCount} 个主题`;
     renderNavigation();
     await route();
+    updateInstallButtonVisibility();
+    registerServiceWorker();
   } catch (error) {
     elements.databaseStatus.textContent = "CONTENT ERROR";
     elements.document.innerHTML = `
@@ -836,6 +894,16 @@ elements.searchPanel.addEventListener("focusout", function () {
 elements.menuButton.addEventListener("click", toggleSidebar);
 elements.scrim.addEventListener("click", closeMobilePanels);
 elements.outlineButton.addEventListener("click", () => elements.outline.classList.toggle("open"));
+elements.installButton.addEventListener("click", async function () {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  try {
+    await deferredInstallPrompt.userChoice;
+  } finally {
+    deferredInstallPrompt = null;
+    updateInstallButtonVisibility();
+  }
+});
 document.addEventListener("click", (event) => {
   if (!elements.outline.classList.contains("open")) return;
   if (elements.outline.contains(event.target) || elements.outlineButton.contains(event.target)) return;
